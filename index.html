@@ -29,15 +29,54 @@
     .timeline { display: grid; gap: 8px; max-height: 240px; overflow: auto; }
     .pill { display: inline-block; padding: 3px 8px; border: 1px solid #c9dadc; border-radius: 999px; font-size: 12px; }
     .muted { color: #5c7378; font-size: 13px; }
-    @media (max-width: 980px) { header { display: block; } .app { grid-template-columns: 1fr; } .map { height: 560px; } }
+    .tabs { display: flex; gap: 8px; align-items: center; }
+    .tab { background: #e1ecee; color: #244a51; }
+    .tab.active { background: #1d6c78; color: #fff; }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .station-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+    .rule-line { margin: 4px 0 12px; }
+    h3 { font-size: 15px; margin: 16px 0 8px; border-top: 1px dashed #c9dadc; padding-top: 10px; }
+    .board { display: grid; gap: 8px; }
+    .dive-card { border: 1px solid #d7e4e5; border-left: 5px solid #64777b; border-radius: 8px; padding: 10px 12px; background: #fbfdfd; }
+    .dive-card.review { border-left-color: #c47f1f; background: #fdf7ec; }
+    .dive-card.released { border-left-color: #2e7d52; background: #f0f8f3; }
+    .dive-card.held { border-left-color: #b0453a; background: #fdf2f1; }
+    .dive-card.ready { border-left-color: #2e7d52; }
+    .dive-card .top { display: flex; justify-content: space-between; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .dive-card b { font-size: 15px; }
+    .metrics { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 7px 0; font-size: 13px; color: #365158; }
+    .flags { display: grid; gap: 3px; margin: 4px 0; font-size: 13px; }
+    .flag-warn { color: #9a6212; }
+    .flag-hold { color: #a33a30; }
+    .flag-ok { color: #2e7d52; }
+    .low-reserve { color: #9a6212; font-weight: 800; }
+    .card-actions { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+    .card-actions button { padding: 6px 10px; font-size: 13px; }
+    .chip { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 800; }
+    .chip.review { background: #f6dfb8; color: #7c4d0c; }
+    .chip.released { background: #cfe8d9; color: #236040; }
+    .chip.held { background: #f3cfca; color: #8f3027; }
+    .chip.ready { background: #cfe8d9; color: #236040; }
+    .chip.rest { background: #dde8ea; color: #405a61; }
+    .form-msg { font-size: 13px; margin-top: 8px; min-height: 16px; }
+    .form-msg.ok { color: #2e7d52; }
+    .form-msg.err { color: #a33a30; }
+    .old-card { opacity: .92; background: #f6f7f7; }
+    .old-tag { font-size: 12px; color: #7a5250; }
+    .empty-note { font-size: 13px; color: #8aa0a4; padding: 4px 2px; }
+    @media (max-width: 980px) { header { display: block; } .tabs { margin-top: 10px; } .app { grid-template-columns: 1fr; } .map { height: 560px; } }
   </style>
 </head>
 <body>
   <header>
-    <div><h1>水下考古潜水记录</h1><div class="muted">点击沉船平面图添加标记，筛选、编辑并导出JSON。</div></div>
-    <button id="exportBtn">导出JSON</button>
+    <div><h1>水下考古潜水记录</h1><div class="muted" id="subtitle">点击沉船平面图添加标记，筛选、编辑并导出JSON。</div></div>
+    <nav class="tabs">
+      <button type="button" id="tabMarks" class="tab active">沉船标记</button>
+      <button type="button" id="tabStation" class="tab">气量放行台</button>
+      <button id="exportBtn">导出JSON</button>
+    </nav>
   </header>
-  <main class="app">
+  <main class="app" id="marksApp">
     <section class="panel">
       <div class="map" id="map"><div class="wreck"></div></div>
     </section>
@@ -62,6 +101,84 @@
       <div id="list" class="list"></div>
     </aside>
   </main>
+
+  <main class="app" id="stationApp" hidden>
+    <section class="panel">
+      <div class="station-head">
+        <h2>气瓶消耗与水面间隔放行台</h2>
+        <div id="clock" class="muted"></div>
+      </div>
+      <p class="muted rule-line" id="restLegend"></p>
+      <h3>下一潜放行计划</h3>
+      <div id="planBoard" class="board"></div>
+      <h3>待复核潜次</h3>
+      <div id="reviewBoard" class="board"></div>
+      <h3>旧读数更正留档</h3>
+      <div id="archiveBoard" class="board"></div>
+    </section>
+
+    <aside class="panel">
+      <form id="logForm">
+        <h2>潜后登记</h2>
+        <label>队员</label><input name="diver" list="diverList" required>
+        <datalist id="diverList"></datalist>
+        <div class="row2">
+          <div><label>瓶容(L)</label><input name="tankVolume" type="number" step="0.5" min="1" required></div>
+          <div><label>最大深度(m)</label><input name="maxDepth" type="number" step="0.1" min="0.1" required></div>
+        </div>
+        <div class="row2">
+          <div><label>起始压力(bar)</label><input name="pStart" type="number" step="1" min="1" required></div>
+          <div><label>出水压力(bar)</label><input name="pEnd" type="number" step="1" min="0" required></div>
+        </div>
+        <div class="row2">
+          <div><label>底部时间(min)</label><input name="bottomTime" type="number" step="1" min="1" required></div>
+          <div><label>出水时刻</label><input name="exitAt" type="datetime-local" step="60" required></div>
+        </div>
+        <div class="toolbar"><button>提交登记</button><button type="reset" class="secondary">清空</button></div>
+        <div id="logMsg" class="form-msg" role="status"></div>
+      </form>
+
+      <form id="reviewForm" hidden>
+        <h2>安全员复核</h2>
+        <div id="reviewTarget" class="muted"></div>
+        <input type="hidden" name="logId">
+        <label>复核人</label><input name="reviewer" required>
+        <label>复核余量(bar，补录瓶内余气)</label><input name="reserveBar" type="number" step="1" min="0">
+        <label>意见</label><textarea name="note" placeholder="耗气异常/休息不足的处置说明"></textarea>
+        <div class="toolbar">
+          <button name="decision" value="released">补录余量并放行</button>
+          <button type="submit" name="decision" value="held" class="secondary">维持待复核</button>
+        </div>
+        <button type="button" id="reviewCancel" class="secondary" style="width:100%">取消</button>
+        <div id="reviewMsg" class="form-msg" role="status"></div>
+      </form>
+
+      <form id="correctForm" hidden>
+        <h2>上一潜读数更正</h2>
+        <div id="correctTarget" class="muted"></div>
+        <input type="hidden" name="logId">
+        <div class="row2">
+          <div><label>瓶容(L)</label><input name="tankVolume" type="number" step="0.5" min="1" required></div>
+          <div><label>最大深度(m)</label><input name="maxDepth" type="number" step="0.1" min="0.1" required></div>
+        </div>
+        <div class="row2">
+          <div><label>起始压力(bar)</label><input name="pStart" type="number" step="1" min="1" required></div>
+          <div><label>出水压力(bar)</label><input name="pEnd" type="number" step="1" min="0" required></div>
+        </div>
+        <div class="row2">
+          <div><label>底部时间(min)</label><input name="bottomTime" type="number" step="1" min="1" required></div>
+          <div><label>出水时刻</label><input name="exitAt" type="datetime-local" step="60" required></div>
+        </div>
+        <label>更正原因</label><input name="reason" required>
+        <div class="toolbar"><button>保存更正并重排</button></div>
+        <button type="button" id="correctCancel" class="secondary" style="width:100%">取消</button>
+        <div id="correctMsg" class="form-msg" role="status"></div>
+      </form>
+    </aside>
+  </main>
+  <script src="gas-rules.js"></script>
+  <script src="review-log.js"></script>
+  <script src="station.js"></script>
   <script>
     const map = document.querySelector("#map");
     const form = document.querySelector("#form");
