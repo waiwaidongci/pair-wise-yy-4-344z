@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>气瓶消耗与水面间隔放行台</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Arial, "PingFang SC", sans-serif; background: #e8f2f3; color: #183035; }
+    header { padding: 18px 24px; background: #fff; border-bottom: 1px solid #c9dadc; display: flex; justify-content: space-between; gap: 16px; align-items: center; flex-wrap: wrap; }
+    h1 { margin: 0; font-size: 24px; }
+    h2 { margin: 4px 0 10px; font-size: 17px; }
+    button, a.btn { border: 0; border-radius: 8px; padding: 10px 13px; background: #1d6c78; color: #fff; font-weight: 800; cursor: pointer; text-decoration: none; display: inline-block; font-size: 14px; }
+    button.secondary, a.btn.secondary { background: #64777b; }
+    button.small { padding: 6px 10px; font-size: 13px; }
+    button:disabled { opacity: .45; cursor: not-allowed; }
+    input, select, textarea { width: 100%; border: 1px solid #c9dadc; border-radius: 6px; padding: 9px; font: inherit; background: #fff; }
+    label { display: block; margin: 9px 0 5px; color: #5c7378; font-size: 13px; }
+    .muted { color: #5c7378; font-size: 13px; }
+    .app { display: grid; grid-template-columns: 360px 1fr; gap: 16px; padding: 16px; align-items: start; }
+    .panel { background: #fff; border: 1px solid #c9dadc; border-radius: 8px; padding: 14px; }
+    .board { display: grid; grid-template-columns: repeat(auto-fill, minmax(248px, 1fr)); gap: 12px; margin-bottom: 16px; }
+    .diver-card { border: 1px solid #d7e4e5; border-radius: 8px; padding: 12px; border-left-width: 5px; }
+    .diver-card.released { border-left-color: #2e8b57; background: #f1faf4; }
+    .diver-card.open { border-left-color: #c08a1e; background: #fdf8ec; }
+    .diver-card.pending { border-left-color: #b24a3d; background: #fdf2f0; }
+    .diver-card.empty { border-left-color: #9db4b7; }
+    .diver-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .diver-name { font-size: 17px; font-weight: 800; }
+    .badge { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 800; white-space: nowrap; }
+    .badge.released { background: #2e8b57; color: #fff; }
+    .badge.open { background: #c08a1e; color: #fff; }
+    .badge.pending { background: #b24a3d; color: #fff; }
+    .badge.empty { background: #9db4b7; color: #fff; }
+    .kv { display: grid; grid-template-columns: 1fr auto; gap: 3px 8px; margin: 8px 0; font-size: 13px; }
+    .kv b { font-variant-numeric: tabular-nums; }
+    .reasons { margin: 8px 0; display: grid; gap: 5px; }
+    .reason { font-size: 12px; color: #8a3a30; background: #fbe6e2; border-radius: 6px; padding: 5px 8px; }
+    .ok-note { font-size: 12px; color: #2e8b57; background: #e3f4ea; border-radius: 6px; padding: 5px 8px; margin: 6px 0; }
+    .restbar { height: 7px; border-radius: 99px; background: #d7e4e5; overflow: hidden; margin: 4px 0 2px; }
+    .restbar > i { display: block; height: 100%; background: #1d6c78; }
+    .restbar.low > i { background: #c08a1e; }
+    .tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+    .tag { font-size: 11px; border: 1px solid #c9dadc; border-radius: 999px; padding: 2px 8px; color: #5c7378; background: #f5fafb; }
+    .tag.warn { color: #8a3a30; border-color: #e2b7b0; background: #fdf2f0; }
+    .tag.good { color: #2e8b57; border-color: #aed4bf; background: #eef8f2; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; }
+    .form-grid .full { grid-column: 1 / -1; }
+    .preview { background: #f0f7f8; border: 1px dashed #9fc2c7; border-radius: 6px; padding: 8px 10px; font-size: 13px; margin: 8px 0; display: grid; gap: 3px; }
+    .preview b { font-variant-numeric: tabular-nums; }
+    .filters { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+    .filters select { width: auto; }
+    .log-list { display: grid; gap: 8px; }
+    .log-item { border: 1px solid #d7e4e5; border-radius: 8px; padding: 10px 12px; }
+    .log-item.pending { border-left: 4px solid #b24a3d; }
+    .log-item.open { border-left: 4px solid #c08a1e; }
+    .log-item.released { border-left: 4px solid #2e8b57; }
+    .log-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; cursor: pointer; }
+    .log-title { font-weight: 800; }
+    .log-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    .log-detail { margin-top: 10px; border-top: 1px dashed #d7e4e5; padding-top: 10px; display: grid; gap: 10px; }
+    .metric-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
+    .metric { background: #f5fafb; border-radius: 6px; padding: 6px 9px; font-size: 12px; }
+    .metric b { display: block; font-size: 14px; font-variant-numeric: tabular-nums; }
+    .archive-list { display: grid; gap: 6px; margin-top: 6px; }
+    .archive { font-size: 12px; background: #f5f3ef; border: 1px solid #e0d9cc; border-radius: 6px; padding: 7px 9px; }
+    .archive del { color: #b24a3d; text-decoration: line-through; }
+    .archive ins { color: #2e8b57; text-decoration: none; font-weight: 800; }
+    .replan { font-size: 12px; color: #8a6414; background: #faf3e0; border-radius: 6px; padding: 5px 8px; }
+    .rules-box { font-size: 13px; color: #416066; background: #f0f7f8; border-radius: 6px; padding: 10px 12px; margin-top: 16px; line-height: 1.7; }
+    .overlay { position: fixed; inset: 0; background: rgba(12, 40, 46, .45); display: none; place-items: center; z-index: 10; padding: 16px; }
+    .overlay.show { display: grid; }
+    .modal { background: #fff; border-radius: 10px; padding: 18px; width: 100%; max-width: 430px; max-height: 90vh; overflow: auto; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+    #toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); background: #183035; color: #fff; padding: 10px 18px; border-radius: 99px; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 20; max-width: 90vw; }
+    #toast.show { opacity: 1; }
+    #toast.error { background: #b24a3d; }
+    .clock { font-variant-numeric: tabular-nums; }
+    @media (max-width: 980px) { .app { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>气瓶消耗与水面间隔放行台</h1>
+      <div class="muted">潜后登记气量与深度，按规则判耗气异常与休息门槛，安全员复核补录余量后放行下一潜。</div>
+    </div>
+    <div class="filters">
+      <span class="muted clock" id="clock"></span>
+      <a class="btn secondary" href="index.html">标记页</a>
+    </div>
+  </header>
+
+  <main class="app">
+    <aside class="panel">
+      <h2>潜后登记</h2>
+      <form id="logForm" autocomplete="off">
+        <input type="hidden" name="id">
+        <label>队员</label>
+        <select name="diverId" id="diverSelect" required></select>
+        <div class="form-grid">
+          <div>
+            <label>瓶容（L）</label>
+            <input name="volume" type="number" step="0.1" min="0" placeholder="如 12" required>
+          </div>
+          <div>
+            <label>最大深度（m）</label>
+            <input name="maxDepth" type="number" step="0.1" min="0" placeholder="如 18.5" required>
+          </div>
+          <div>
+            <label>起始压力（bar）</label>
+            <input name="startPressure" type="number" step="1" min="0" placeholder="如 200" required>
+          </div>
+          <div>
+            <label>出水残压（bar）</label>
+            <input name="endPressure" type="number" step="1" min="0" placeholder="如 70" required>
+          </div>
+          <div>
+            <label>底部时间（分）</label>
+            <input name="bottomTime" type="number" step="1" min="0" placeholder="如 40" required>
+          </div>
+          <div>
+            <label>出水时刻</label>
+            <input name="exitAt" type="datetime-local" required>
+          </div>
+        </div>
+        <div class="preview" id="preview"></div>
+        <button type="submit" id="submitBtn">提交登记</button>
+        <button type="button" class="secondary" id="resetBtn">清空</button>
+      </form>
+      <div class="rules-box">
+        <b>放行规则</b><br>
+        用气量 = 瓶容 ×（起压 − 残压）；SAC = 深度耗气率 ÷（1 + 深度/10）。<br>
+        ① SAC 高出本人最近三次中位数两成（×1.2）→ 待复核；不足三次不判。<br>
+        ② 水面休息门槛按最大深度：≤10m 30分 / ≤18m 60分 / ≤24m 90分 / ≤30m 120分 / 更深 180分。<br>
+        ③ 无异常后由安全员复核，补录余量不低于 <b id="floorText"></b>bar 方可放行下一潜。<br>
+        ④ 旧读数可更正，旧记录留档，计划自动重排。
+      </div>
+    </aside>
+
+    <section>
+      <h2>下一潜放行板</h2>
+      <div class="board" id="board"></div>
+
+      <div class="panel">
+        <div class="filters">
+          <h2 style="margin:0">潜次记录</h2>
+          <select id="diverFilter"><option value="">全部队员</option></select>
+          <select id="statusFilter">
+            <option value="">全部状态</option>
+            <option value="pending">待复核</option>
+            <option value="open">待放行</option>
+            <option value="released">已放行</option>
+          </select>
+          <label style="margin:0"><input type="checkbox" id="archiveToggle" style="width:auto"> 显示留档旧记录</label>
+        </div>
+        <div class="log-list" id="logList"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- 安全员复核弹窗 -->
+  <div class="overlay" id="reviewOverlay">
+    <div class="modal">
+      <h2>安全员复核放行</h2>
+      <div id="reviewSummary" class="preview"></div>
+      <form id="reviewForm">
+        <label>复核人</label>
+        <input name="officer" placeholder="安全员姓名" required>
+        <label>补录余量（bar，不低于安全底线）</label>
+        <input name="reserveBar" type="number" step="1" required>
+        <label>复核意见</label>
+        <textarea name="remark" placeholder="异常原因判断、装备检查等"></textarea>
+        <div class="modal-actions">
+          <button type="button" class="secondary" id="reviewCancel">取消</button>
+          <button type="submit">放行下一潜</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 读数更正弹窗 -->
+  <div class="overlay" id="correctOverlay">
+    <div class="modal">
+      <h2>更正上一潜读数</h2>
+      <div class="muted" id="correctHint"></div>
+      <form id="correctForm">
+        <input type="hidden" name="id">
+        <div class="form-grid">
+          <div><label>瓶容（L）</label><input name="volume" type="number" step="0.1" required></div>
+          <div><label>最大深度（m）</label><input name="maxDepth" type="number" step="0.1" required></div>
+          <div><label>起始压力（bar）</label><input name="startPressure" type="number" step="1" required></div>
+          <div><label>出水残压（bar）</label><input name="endPressure" type="number" step="1" required></div>
+          <div><label>底部时间（分）</label><input name="bottomTime" type="number" step="1" required></div>
+          <div><label>出水时刻</label><input name="exitAt" type="datetime-local" required></div>
+        </div>
+        <label>更正人</label>
+        <input name="actor" placeholder="安全员姓名" required>
+        <label>更正原因（旧读数将留档）</label>
+        <textarea name="reason" placeholder="如压力表回读误差、登记笔误" required></textarea>
+        <div class="modal-actions">
+          <button type="button" class="secondary" id="correctCancel">取消</button>
+          <button type="submit">确认更正并重排</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script src="gas-rules.js"></script>
+  <script src="review-records.js"></script>
+  <script src="gas-console.js"></script>
+</body>
+</html>

@@ -9,7 +9,8 @@
     body { margin: 0; font-family: Arial, "PingFang SC", sans-serif; background: #e8f2f3; color: #183035; }
     header { padding: 18px 24px; background: #fff; border-bottom: 1px solid #c9dadc; display: flex; justify-content: space-between; gap: 16px; align-items: center; }
     h1 { margin: 0; font-size: 26px; }
-    button { border: 0; border-radius: 8px; padding: 10px 13px; background: #1d6c78; color: #fff; font-weight: 800; cursor: pointer; }
+    button, a.btn { border: 0; border-radius: 8px; padding: 10px 13px; background: #1d6c78; color: #fff; font-weight: 800; cursor: pointer; font-size: 14px; }
+    a.btn { display: inline-block; text-decoration: none; }
     button.secondary { background: #64777b; }
     input, select, textarea { width: 100%; border: 1px solid #c9dadc; border-radius: 6px; padding: 9px; font: inherit; background: #fff; }
     textarea { min-height: 64px; }
@@ -35,7 +36,10 @@
 <body>
   <header>
     <div><h1>水下考古潜水记录</h1><div class="muted">点击沉船平面图添加标记，筛选、编辑并导出JSON。</div></div>
-    <button id="exportBtn">导出JSON</button>
+    <div class="toolbar" style="display:flex;gap:8px;margin:0">
+      <a class="btn" href="gas.html" style="text-decoration:none">气量放行台</a>
+      <button id="exportBtn">导出JSON</button>
+    </div>
   </header>
   <main class="app">
     <section class="panel">
